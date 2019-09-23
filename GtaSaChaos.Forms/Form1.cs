@@ -8,6 +8,7 @@ using System.Linq;
 using System.Windows.Forms;
 using GtaChaos.Forms.Elements;
 using GtaChaos.Forms.Presets;
+using GtaChaos.Forms.Timers;
 using GtaChaos.Models.Effects;
 using GtaChaos.Models.Effects.@abstract;
 using GtaChaos.Models.Utils;
@@ -22,6 +23,7 @@ namespace GtaChaos.Forms
         #endregion Constants
         private readonly string configPath = Path.Combine(Directory.GetCurrentDirectory(), ConfigFileName);
 
+        private readonly IChaosTimer _mainTimer;
         private readonly Stopwatch stopwatch;
         private readonly Dictionary<string, EffectTreeNode> idToEffectNodeMap = new Dictionary<string, EffectTreeNode>();
         private TwitchConnection twitch;
@@ -60,6 +62,8 @@ namespace GtaChaos.Forms
             TryLoadConfig();
 
             timesUntilRapidFire = new Random().Next(10, 15);
+            _mainTimer = new DefaultTimer(progressBarMain);
+            _mainTimer.AddEffectCallback(CallEffect);
         }
 
         private void AutoStartTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
@@ -157,7 +161,7 @@ namespace GtaChaos.Forms
             }
             else
             {
-                TickMain();
+                _mainTimer.Tick();
             }
         }
 
@@ -191,6 +195,9 @@ namespace GtaChaos.Forms
                 progressBarMain.Value = 0;
                 progressBarMain.Maximum = Config.Instance.MainCooldown;
                 elapsedCount = 0;
+
+                // TODO Reset Twitch progress.
+                _mainTimer.Reset();
                 stopwatch.Reset();
             }
         }
@@ -403,6 +410,9 @@ namespace GtaChaos.Forms
             tabSettings.SelectedIndex = 0;
             tabSettings.TabPages.Remove(pageToRemove);
             elapsedCount = 0;
+
+            // TODO reset twitch timer.
+            _mainTimer.Reset();
             stopwatch.Reset();
             SetEnabled(false);
 
@@ -434,6 +444,9 @@ namespace GtaChaos.Forms
         private void ButtonResetMain_Click(object sender, EventArgs e)
         {
             SetEnabled(false);
+
+            // TODO Twitch timer
+            _mainTimer.Reset();
             stopwatch.Reset();
             elapsedCount = 0;
             progressBarMain.Value = 0;
@@ -480,6 +493,9 @@ namespace GtaChaos.Forms
         private void ButtonResetTwitch_Click(object sender, EventArgs e)
         {
             SetEnabled(false);
+
+            // TODO Twitch timer
+            _mainTimer.Reset();
             stopwatch.Reset();
             elapsedCount = 0;
             progressBarTwitch.Value = 0;
@@ -679,38 +695,6 @@ namespace GtaChaos.Forms
 
         #region Timer logic
 
-        private void TickMain()
-        {
-            if (!Config.Instance.Enabled)
-            {
-                return;
-            }
-
-            var value = Math.Max(1, (int)stopwatch.ElapsedMilliseconds);
-
-            // Hack to fix Windows' broken-ass progress bar handling
-            progressBarMain.Value = Math.Min(value, progressBarMain.Maximum);
-            progressBarMain.Value = Math.Min(value - 1, progressBarMain.Maximum);
-
-            if (stopwatch.ElapsedMilliseconds - elapsedCount > 100)
-            {
-                long remaining = Math.Max(0, Config.Instance.MainCooldown - stopwatch.ElapsedMilliseconds);
-                int intRemaning = (int)((float)remaining / Config.Instance.MainCooldown * 1000f);
-
-                ProcessHooker.SendEffectToGame("time", intRemaning.ToString());
-
-                elapsedCount = (int)stopwatch.ElapsedMilliseconds;
-            }
-
-            if (stopwatch.ElapsedMilliseconds >= Config.Instance.MainCooldown)
-            {
-                progressBarMain.Value = 0;
-                CallEffect();
-                elapsedCount = 0;
-                stopwatch.Restart();
-            }
-        }
-
         private void TickTwitch()
         {
             if (!Config.Instance.Enabled)
@@ -880,7 +864,15 @@ namespace GtaChaos.Forms
             progressBarTwitch.Value = 0;
             progressBarTwitch.Maximum = Config.Instance.TwitchVotingCooldown;
 
-            stopwatch.Restart();
+            // TODO Twitch timer
+            if (Config.Instance.IsTwitchMode)
+            {
+                stopwatch.Restart();
+            }
+            else
+            {
+                _mainTimer.Restart();
+            }
         }
 
         #endregion
@@ -889,6 +881,9 @@ namespace GtaChaos.Forms
         {
             buttonAutoStart.Enabled = Config.Instance.IsTwitchMode && twitch != null && twitch.Client != null && twitch.Client.IsConnected;
             buttonAutoStart.Text = "Auto-Start";
+
+            // TODO Twitch timer
+            _mainTimer.Reset();
             stopwatch.Reset();
             SetEnabled(true);
         }
@@ -898,11 +893,25 @@ namespace GtaChaos.Forms
             Config.Instance.Enabled = enabled;
             if (Config.Instance.Enabled)
             {
-                stopwatch.Start();
+                if (Config.Instance.IsTwitchMode)
+                {
+                    stopwatch.Start();
+                }
+                else
+                {
+                    _mainTimer.Start();
+                }
             }
             else
             {
-                stopwatch.Stop();
+                if (Config.Instance.IsTwitchMode)
+                {
+                    stopwatch.Stop();
+                }
+                else
+                {
+                    _mainTimer.Stop();
+                }
             }
             autoStartTimer.Stop();
             buttonMainToggle.Enabled = true;
