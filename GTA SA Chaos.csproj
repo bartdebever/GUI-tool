@@ -207,6 +207,14 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Elements\CategoryTreeNode.cs" />
+    <Compile Include="Elements\EffectTreeNode.cs" />
+    <Compile Include="Elements\MainCooldownComboBoxItem.cs" />
+    <Compile Include="Elements\PresetComboBoxItem.cs" />
+    <Compile Include="Elements\VotingCooldownComboBoxItem.cs" />
+    <Compile Include="Elements\VotingTimeComboBoxItem.cs" />
+    <Compile Include="Presets\CooldownPresets.cs" />
+    <Compile Include="Presets\EffectPresets.cs" />
     <Compile Include="src\effects\abstract\AbstractEffect.cs" />
     <Compile Include="src\effects\extra\WeatherEffect.cs" />
     <Compile Include="src\effects\extra\SpawnVehicleEffect.cs" />
@@ -272,6 +280,7 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="packages\Fody.6.0.0\build\Fody.targets" Condition="Exists('packages\Fody.6.0.0\build\Fody.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

@@ -1,4 +1,7 @@
 ﻿// Copyright (c) 2019 Lordmau5
+
+using System;
+using System.IO;
 using Newtonsoft.Json;
 
 namespace GTA_SA_Chaos.util
@@ -44,9 +47,49 @@ namespace GTA_SA_Chaos.util
             return Instance.MainCooldown * 3;
         }
 
-        public static string FToString(float value)
+        public static Config LoadConfig(string configPath)
         {
-            return value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            try
+            {
+                var serializer = new JsonSerializer();
+
+                using (var streamReader = new StreamReader(configPath))
+                using (var reader = new JsonTextReader(streamReader))
+                {
+                    Instance = serializer.Deserialize<Config>(reader);
+
+                    RandomHandler.SetSeed(Instance.Seed);
+
+                    return Instance;
+                }
+            }
+            catch (Exception)
+            {
+                // TODO Log that the loading has gone wrong.
+            }
+
+            return null;
+        }
+
+        public bool SaveConfig(string configPath)
+        {
+            try
+            {
+                var serializer = new JsonSerializer();
+
+                using (var streamWriter = new StreamWriter(configPath))
+                using (var writer = new JsonTextWriter(streamWriter))
+                {
+                    serializer.Serialize(writer, Instance);
+                }
+
+                return true;
+            }
+            catch (Exception)
+            {
+                // TODO Log exception
+                return false;
+            }
         }
     }
 }
